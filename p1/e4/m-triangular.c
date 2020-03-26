@@ -15,15 +15,14 @@ double dwalltime(){
 }
 
 //Para calcular la cantidad de 0 a restar
-int cantidad_ceros(int columna){
+static inline int cantidad_ceros(int columna){
   int ceros,tamMatriz,dimMatriz,cantElementos;
 
 	dimMatriz=columna+1;
 	tamMatriz=dimMatriz*dimMatriz;
   cantElementos=dimMatriz*(dimMatriz+1)/2;
-	ceros=tamMatriz-cantElementos;
-
-  return ceros;
+	
+  return tamMatriz - cantElementos;
 }
 
 int main(int argc,char* argv[]){
@@ -43,7 +42,6 @@ int main(int argc,char* argv[]){
 
  // Alocación de memoria para las matrices
  int TRIANGULAR_SIZE = ((N*N)+N) / 2;
- printf("%i\n", N);
 
  A=(double*)malloc(sizeof(double)*N*N);
  BT=(double*)malloc(sizeof(double)*TRIANGULAR_SIZE);
@@ -64,8 +62,7 @@ int main(int argc,char* argv[]){
     A[i*N+j]=1;
    }
 
- 
-   //Para cargar la matriz triangular en forma de vector
+    //Carga la matriz triangular en forma de vector
    if(i >= j){
     int index = i - cantidad_ceros(j) + N*j;
     BT[index] = N;
@@ -85,20 +82,9 @@ int main(int argc,char* argv[]){
     for(j=0; j<N; j++){
 
       // Notar que solo recorre las diagonales
-
-
-      // for(k=0; k<(N-j); k++){
-
-      //   C[i*N+j] = C[i*N+j] + A[i*N+k+j] * BT[k+j+j*N];
-
-      // }
-
-      for(k=0; k<N; k++)
-      {
-        if (k >= j){
-          int index = k - cantidad_ceros(j) + N*j;
-          C[i*N+j] = C[i*N+j] + A[i*N+k] * BT[index];
-        }
+      for(k=0; k<(N-j); k++){
+        int index = k - cantidad_ceros(j) + N*j;
+        C[i*N+j] = C[i*N+j] + A[i*N+k+j] * BT[index];
       }
     }
  }
