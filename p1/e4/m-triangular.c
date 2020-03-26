@@ -14,10 +14,20 @@ double dwalltime(){
         return sec;
 }
 
+//Para calcular la cantidad de 0 a restar
+int calcularCeros(int columna){
+        int ceros,tamMatriz,dimMatriz,cantElementos;
+	dimMatriz=columna+1;
+	tamMatriz=dimMatriz*dimMatriz;
+        cantElementos=dimMatriz*(dimMatriz+1)/2;
+	ceros=tamMatriz-cantElementos;
+        return ceros;
+}
+
 int main(int argc,char* argv[]){
 
- double *A,*BT,*C;
- int i,j,k;
+ double *A,*BT,*C,*Prueba;;
+ int i,j,k,tamTriangular;
  int check = 1;
  double timetick;
 
@@ -32,6 +42,8 @@ int main(int argc,char* argv[]){
  A=(double*)malloc(sizeof(double)*N*N);
  BT=(double*)malloc(sizeof(double)*N*N);
  C=(double*)malloc(sizeof(double)*N*N);
+ //Esta es la matraiz triangular en forma de vector guardando todo menos los ceros
+ Prueba=(double*)malloc(sizeof(double)*tamTriangular);
 
  //Inicializa las matrices
  //La matriz A se inicializa todas las columnas en 0 menos la ultima
@@ -49,6 +61,11 @@ int main(int argc,char* argv[]){
 
    if(i>=j){
     BT[j*N+i]=N;
+   }
+   
+   //Para cargar la matriz triangular en forma de vector
+   if(i>=j){
+    Prueba[i - calcularCeros(j) + N*j]= i - calcularCeros(j) + N*j;
    }
 
    C[i*N+j]=0;  
@@ -78,6 +95,15 @@ int main(int argc,char* argv[]){
    }
   }
  }
+
+  //Este codigo es el que se encarga de recorrer las matrices sin iterar sobre los ceros de la matriz triangular
+  //for(i=0;i<N;i++){
+  //for(j=0;j<N;j++){
+  //for(k=0;k<N-j;k++){
+    //C[i*N+j]=C[i*N+j] + A[i*N+k+j]*BT[k+j+j*N];
+   //}
+  //}
+ //}
 
  printf("Tiempo en segundos %f\n", dwalltime() - timetick);
 
