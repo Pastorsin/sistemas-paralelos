@@ -1,6 +1,6 @@
 #include<stdio.h>
 #include <sys/time.h>
-#define cant 100000000 
+#define cant 1000000000 
 
 /**********Para calcular tiempo*************************************/
 double dwalltime()
@@ -15,28 +15,46 @@ double dwalltime()
 /****************************************************************/
 
 int main(int argc, char *argv[]){
- double x=2;
- 
+  double x=33554431, y=1023;
   double timetick, timeend;
   double resultado;
   long long int i;
 
-  /*Calcula la funcion y hace los calculos*/
-  printf("Funcion calculada...\n");
+  /*Suma*/
+  printf("Suma...\n");
   timetick = dwalltime();
-  	double fx = 2 * (( (x*x*x) + (3*x*x) + (3*x) + 2 ) / ( (x*x) + 1));
 	for(i=0;i<cant;i++){
-		resultado += fx - i;
+		resultado = x+y;
 	}
   timeend = dwalltime();
   printf(" Tiempo total en segundos %.10lf \n", (timeend - timetick));
   printf(" Tiempo promedio en segundos %.10lf \n", (timeend - timetick)/cant);
   
-  /*Calcula la funcion cada vez que hace los calculos*/
-  printf("Funcion calculada cada vez...\n");
+  /*Resta*/
+  printf("Resta...\n");
   timetick = dwalltime();
 	for(i=0;i<cant;i++){
- 		resultado += 2 * ( ( (x*x*x) + (3*x*x) + (3*x) + 2 ) / ( (x*x) + 1) ) - i ;
+		resultado = x-y;
+	}
+  timeend = dwalltime();
+  printf(" Tiempo total en segundos %.10lf \n", (timeend - timetick));
+  printf(" Tiempo promedio en segundos %.10lf \n", (timeend - timetick)/cant);
+  
+  /*Producto*/
+  printf("Producto...\n");
+  timetick = dwalltime();
+	for(i=0;i<cant;i++){
+		resultado = x*y;
+	}
+  timeend = dwalltime();
+  printf(" Tiempo total en segundos %.10lf \n", (timeend - timetick));
+  printf(" Tiempo promedio en segundos %.10lf \n", (timeend - timetick)/cant);
+  
+  /*Division*/
+  printf("Division...\n");
+  timetick = dwalltime();
+	for(i=0;i<cant;i++){
+		resultado = x/y;
 	}
   timeend = dwalltime();
   printf(" Tiempo total en segundos %.10lf \n", (timeend - timetick));
