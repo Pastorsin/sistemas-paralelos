@@ -8,7 +8,7 @@ cp multBloques.out outputs
 
 cd outputs
 echo " ================= Algoritmo con Bloques =================== "
-for matriz in 512 1024
+for matriz in 512 1024 2048
 do
   echo " ==================================================== Matriz $((matriz)) "
   tamBloque=$matriz
