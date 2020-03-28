@@ -3,7 +3,7 @@
 #include <math.h>
 
 #define TIMES 100
-#define N 10000000
+#define N 1000000
 
 #define A 1.0
 #define B -4.0000000
