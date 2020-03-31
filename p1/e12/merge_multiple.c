@@ -493,7 +493,7 @@ void freeMultiplesArrays(Tlista* container,unsigned int nroListas){
 
 //Recibe una arreglo de listas y retorna la mezcla de todas las listas
 //La estrategia mezcla todas las listas al mismo tiempo
-unsigned int* mergeMultiple(unsigned int* mezcla,Tlista* container,unsigned int nroListas){
+unsigned int* mergeMultiple(unsigned int* mezcla, Tlista* container,unsigned int nroListas){
 unsigned int min;
 unsigned int hayMinimo=FALSE;
 unsigned int indiceMinimo;
@@ -545,7 +545,7 @@ unsigned int* mergeMultipleIncremental(unsigned int* buffer2,Tlista* container,u
   pbaseOUT = buffer1;
   
   //Primera mezcla: mezcla un par de listas, las dos primeras, desde el container a un arreglo (buffer1)
-  pbaseOUT = merge(container[0].lista,container[0].N, container[1].lista, container[1].N, pbaseOUT);
+  pbaseOUT = merge(container[0].lista, container[0].N, container[1].lista, container[1].N, pbaseOUT);
   NParte = container[0].N + container[1].N;
   
   //Segunda mezcla: mezcla lo que quedo en el arreglo (buffer1)
@@ -649,111 +649,111 @@ unsigned int* mergeMultiplePares(unsigned int* buffer2,Tlista* container,unsigne
 }
 
 int main(int argc, char* argv[]){
-Tlista* (*funcionDeInicializacion[SIZE_INICIALIZADORES]) (Tlista*, unsigned int, unsigned int, unsigned int);
-int (*funcionDeValidacion[SIZE_INICIALIZADORES]) (unsigned int*, unsigned int);
-Tlista* container;
-unsigned int* mezcla;
-unsigned int N=0;
-double timetick; 
-unsigned int i;
-unsigned int min, max;
- 
- if(argc < 5){
- 	printf("Faltan argumentos, correr: ./programa <cantidad de listas> <tipo de inicializacion> <Longitud de lista mínima> <Longitud de lista máxima>\n");
-	return -1;
- }	 
+	Tlista* (*funcionDeInicializacion[SIZE_INICIALIZADORES]) (Tlista*, unsigned int, unsigned int, unsigned int);
+	int (*funcionDeValidacion[SIZE_INICIALIZADORES]) (unsigned int*, unsigned int);
+	Tlista* container;
+	unsigned int* mezcla;
+	unsigned int N=0;
+	double timetick; 
+	unsigned int i;
+	unsigned int min, max;
+	 
+	 if(argc < 5){
+	 	printf("Faltan argumentos, correr: ./programa <cantidad de listas> <tipo de inicializacion> <Longitud de lista mínima> <Longitud de lista máxima>\n");
+		return -1;
+	 }	 
 
- unsigned int nroListas=atol(argv[1]);
- if (!esPotenciaDe2(nroListas)){
- 	printf("La cantidad de arrays debe ser un número potencia de 2\n");
- 	return -1;
- }
+	 unsigned int nroListas=atol(argv[1]);
+	 if (!esPotenciaDe2(nroListas)){
+	 	printf("La cantidad de arrays debe ser un número potencia de 2\n");
+	 	return -1;
+	 }
 
- Tinicializadores inicializador = TOENUM(Tinicializadores, argv[2]);
- if( (inicializador == -1) || (inicializador>=SIZE_INICIALIZADORES) ){
-	printf("Error en la opcion de inicializacion, debe ser: SECUENCIA, PRIMOS, PARES, IMPARES, UNIFORME_CRECIENTE, UNIFORME_DECRECIENTE o ALEATORIA\n"); 
-	return -1;
- }
- 
- if( (inicializador==UNIFORME_CRECIENTE) || (inicializador==UNIFORME_DECRECIENTE)){
-	printf("Aclaración: para la inicializacion UNIFORME_CRECIENTE o UNIFORME_DECRECIENTE solo se tomara en cuenta la longitud de lista maxima\n");	
- }
- 
- min=atol(argv[3]);
- max=atol(argv[4]);
- if ( (min==0) || (max==0) || (min > max)){
-	printf("Error en los parámetros de longitudes mínima y máxima: minima debe ser <> 0 y min < max\n"); 
-	return -1;
- }
- 
- funcionDeInicializacion[SECUENCIA]=inicializarSecuencia;
- funcionDeInicializacion[PRIMOS]=inicializarPrimos;
- funcionDeInicializacion[PARES]=inicializarPares;
- funcionDeInicializacion[IMPARES]=inicializarImpares;
- funcionDeInicializacion[UNIFORME_CRECIENTE]=inicializarUniformeCreciente;
- funcionDeInicializacion[UNIFORME_DECRECIENTE]=inicializarUniformeDecreciente;
- funcionDeInicializacion[ALEATORIA]=inicializarAleatoria;
- 
- funcionDeValidacion[SECUENCIA]=validarSecuencia;
- funcionDeValidacion[PRIMOS]=validarPrimos;
- funcionDeValidacion[PARES]=validarPares;
- funcionDeValidacion[IMPARES]=validarImpares; 
- funcionDeValidacion[UNIFORME_CRECIENTE]=validarUniformeCreciente;
- funcionDeValidacion[UNIFORME_DECRECIENTE]=validarUniformeDecreciente;
- funcionDeValidacion[ALEATORIA]=validarAleatoria;
- 
- //Crea e inicializa el arreglo de listas
- container = (Tlista*)malloc(sizeof(Tlista)*nroListas);
- container = funcionDeInicializacion[inicializador](container,nroListas,min,max);
- #ifdef PRINT
-	imprimirMultiplesArrays(container,nroListas);
- #endif
- 
- //Obtiene la longitud del arreglo mezclado y reserva memoria para este
- for(i=0;i<nroListas;i++)
-	N+=container[i].N;
- mezcla = (unsigned int*)malloc(sizeof(unsigned int)*N);
+	 Tinicializadores inicializador = TOENUM(Tinicializadores, argv[2]);
+	 if( (inicializador == -1) || (inicializador>=SIZE_INICIALIZADORES) ){
+		printf("Error en la opcion de inicializacion, debe ser: SECUENCIA, PRIMOS, PARES, IMPARES, UNIFORME_CRECIENTE, UNIFORME_DECRECIENTE o ALEATORIA\n"); 
+		return -1;
+	 }
+	 
+	 if( (inicializador==UNIFORME_CRECIENTE) || (inicializador==UNIFORME_DECRECIENTE)){
+		printf("Aclaración: para la inicializacion UNIFORME_CRECIENTE o UNIFORME_DECRECIENTE solo se tomara en cuenta la longitud de lista maxima\n");	
+	 }
+	 
+	 min=atol(argv[3]);
+	 max=atol(argv[4]);
+	 if ( (min==0) || (max==0) || (min > max)){
+		printf("Error en los parámetros de longitudes mínima y máxima: minima debe ser <> 0 y min < max\n"); 
+		return -1;
+	 }
+	 
+	 funcionDeInicializacion[SECUENCIA]=inicializarSecuencia;
+	 funcionDeInicializacion[PRIMOS]=inicializarPrimos;
+	 funcionDeInicializacion[PARES]=inicializarPares;
+	 funcionDeInicializacion[IMPARES]=inicializarImpares;
+	 funcionDeInicializacion[UNIFORME_CRECIENTE]=inicializarUniformeCreciente;
+	 funcionDeInicializacion[UNIFORME_DECRECIENTE]=inicializarUniformeDecreciente;
+	 funcionDeInicializacion[ALEATORIA]=inicializarAleatoria;
+	 
+	 funcionDeValidacion[SECUENCIA]=validarSecuencia;
+	 funcionDeValidacion[PRIMOS]=validarPrimos;
+	 funcionDeValidacion[PARES]=validarPares;
+	 funcionDeValidacion[IMPARES]=validarImpares; 
+	 funcionDeValidacion[UNIFORME_CRECIENTE]=validarUniformeCreciente;
+	 funcionDeValidacion[UNIFORME_DECRECIENTE]=validarUniformeDecreciente;
+	 funcionDeValidacion[ALEATORIA]=validarAleatoria;
+	 
+	 //Crea e inicializa el arreglo de listas
+	 container = (Tlista*)malloc(sizeof(Tlista)*nroListas);
+	 container = funcionDeInicializacion[inicializador](container,nroListas,min,max);
+	 #ifdef PRINT
+		imprimirMultiplesArrays(container,nroListas);
+	 #endif
+	 
+	 //Obtiene la longitud del arreglo mezclado y reserva memoria para este
+	 for(i=0;i<nroListas;i++)
+		N+=container[i].N;
+	 mezcla = (unsigned int*)malloc(sizeof(unsigned int)*N);
 
- //Obtiene la mezcla de todas las listas al mismo tiempo
- timetick = dwalltime();
- mezcla = mergeMultiple(mezcla,container,nroListas);
- printf("Tiempo Mezcla multiple %f \n", dwalltime() - timetick);
- #ifdef PRINT
-	imprimirVector(mezcla, N, "Multiple: ");
- #endif	
- if (funcionDeValidacion[inicializador](mezcla,N)==0) printf("Mezcla OK\n");
- 
- //Reinicializa los indices para iterar las listas y pone en cero el arreglo de la mezcla
- container = reiniciarIndiceActual(container, nroListas);
- memset(mezcla, 0, sizeof(unsigned int)*N);
- 
- //Obtiene la mezcla haciendolo incrementalmente
- timetick = dwalltime();
- mezcla = mergeMultipleIncremental(mezcla,container,nroListas);
- printf("Tiempo Mezcla de incremental %f \n", dwalltime() - timetick);
- #ifdef PRINT
-	imprimirVector(mezcla,N, "Pares: ");
- #endif	
- if (funcionDeValidacion[inicializador](mezcla,N)==0) printf("Mezcla OK\n");
+	 //Obtiene la mezcla de todas las listas al mismo tiempo
+	 timetick = dwalltime();
+	 mezcla = mergeMultiple(mezcla,container,nroListas);
+	 printf("Tiempo Mezcla multiple %f \n", dwalltime() - timetick);
+	 #ifdef PRINT
+		imprimirVector(mezcla, N, "Multiple: ");
+	 #endif	
+	 if (funcionDeValidacion[inicializador](mezcla,N)==0) printf("Mezcla OK\n");
+	 
+	 //Reinicializa los indices para iterar las listas y pone en cero el arreglo de la mezcla
+	 container = reiniciarIndiceActual(container, nroListas);
+	 memset(mezcla, 0, sizeof(unsigned int)*N);
+	 
+	 //Obtiene la mezcla haciendolo incrementalmente
+	 timetick = dwalltime();
+	 mezcla = mergeMultipleIncremental(mezcla,container,nroListas);
+	 printf("Tiempo Mezcla de incremental %f \n", dwalltime() - timetick);
+	 #ifdef PRINT
+		imprimirVector(mezcla,N, "Pares: ");
+	 #endif	
+	 if (funcionDeValidacion[inicializador](mezcla,N)==0) printf("Mezcla OK\n");
 
- 
-//Reinicializa los indices para iterar las listas y pone en cero el arreglo de la mezcla
- container = reiniciarIndiceActual(container, nroListas);
- memset(mezcla, 0, sizeof(unsigned int)*N);
+	 
+	//Reinicializa los indices para iterar las listas y pone en cero el arreglo de la mezcla
+	 container = reiniciarIndiceActual(container, nroListas);
+	 memset(mezcla, 0, sizeof(unsigned int)*N);
 
- //Obtiene la mezcla haciendolo de a pares de listas
- timetick = dwalltime();
- mezcla = mergeMultiplePares(mezcla,container,nroListas);
- printf("Tiempo Mezcla de a pares %f \n", dwalltime() - timetick);
- #ifdef PRINT
-  imprimirVector(mezcla,N, "Pares: ");
- #endif
- if (funcionDeValidacion[inicializador](mezcla,N)==0) printf("Mezcla OK\n");
+	 //Obtiene la mezcla haciendolo de a pares de listas
+	 timetick = dwalltime();
+	 mezcla = mergeMultiplePares(mezcla,container,nroListas);
+	 printf("Tiempo Mezcla de a pares %f \n", dwalltime() - timetick);
+	 #ifdef PRINT
+	  imprimirVector(mezcla,N, "Pares: ");
+	 #endif
+	 if (funcionDeValidacion[inicializador](mezcla,N)==0) printf("Mezcla OK\n");
 
- //Libera recursos
- free(mezcla);
- freeMultiplesArrays(container,nroListas);
+	 //Libera recursos
+	 free(mezcla);
+	 freeMultiplesArrays(container,nroListas);
 
- return 0;	
+	 return 0;	
 }
 
