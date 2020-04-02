@@ -71,6 +71,9 @@ void print_matrix(double *D){
 
 
 // Realiza RESULTADO=M1*M2
+// La matriz RESULTADO está organizada por filas
+// La matriz M1 está organizada por filas
+// La matriz M2 está organizada por columnas
 static inline void multiplicar(double *M1, double *M2, double *RESULTADO){
   for(int i = 0; i < N; i++){
 
