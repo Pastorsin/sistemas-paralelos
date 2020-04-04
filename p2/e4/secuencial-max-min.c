@@ -6,9 +6,6 @@
 int N=4096;
 int *VECTOR;
 
-// Valor a buscar
-int VALOR=1;
-
 
 //Para calcular tiempo
 double dwalltime(){
@@ -31,25 +28,14 @@ void inicializar(){
 }
 
 
-int buscar_ocurrencias(){
-	int ocurrencias = 0;
-
-  	for (int i = 0; i < N; i++){
-  		if (VECTOR[i] == VALOR)
-  			ocurrencias++;
-  	}
-
-  	return ocurrencias;
-}
-
-
-int resultado_valido(int ocurrencias){
-	return (ocurrencias == N/2);
+int resultado_valido(int max, int min){
+	return max == 1 && min == 0;
 }
 
 
 int main(int argc, char const *argv[]){
 	double timetick;
+	int max, min;
 
 	//Controla los argumentos al programa
 	if ((argc != 2) || ((N = atoi(argv[1])) <= 0) ){
@@ -61,19 +47,27 @@ int main(int argc, char const *argv[]){
 
 	inicializar();
 
+	max = min = VECTOR[0];
+
 	timetick = dwalltime();
 
-	int ocurrencias = buscar_ocurrencias();
+	for (int i = 0; i < N; i++){
+		if (VECTOR[i] > max)
+			max = VECTOR[i];
 
-	printf("Ocurrencias en Vector de tamaño %i. Tiempo en segundos %f\n", N, dwalltime() - timetick);
+		if (VECTOR[i] < min)
+			min = VECTOR[i];
+	}
 
-	if(resultado_valido(ocurrencias)){
-    	printf("Cantidad de ocurrencias correcta: %i\n", ocurrencias);
-  	}else{
-    	printf("Cantidad de ocurrencias erronea: %i\n", ocurrencias);
-  	}
+	printf("Maximo/Mínimo en Vector de tamaño %i. Tiempo en segundos %f\n", N, dwalltime() - timetick);
 
-  	free(VECTOR);
+	if(resultado_valido(max, min)){
+		printf("Máximo y mínimo correcto. Máximo: %i - Mínimo: %i\n", max, min);
+	}else{
+		printf("Máximo y mínimo erroneo. Máximo: %i - Mínimo: %i\n", max, min);		
+	}
+
+	free(VECTOR);
 
 	return 0;
 }

@@ -69,5 +69,7 @@ int main(int argc, char const *argv[]){
     	printf("Cantidad de ocurrencias erronea: %f\n", promedio);
   	}
 
+  	free(VECTOR);
+
 	return 0;
 }
