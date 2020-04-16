@@ -19,7 +19,7 @@ int main(int argc,char*argv[]){
  // I => fila J=> columna. 
 
   for(i=0;i<N;i++){
-   #pragma omp parallel for shared(A) private(i,j)
+   #pragma omp parallel for shared(A) firstprivate(i)
    for(j=0;j<N;j++){
 		A[i*N+j]=i*j;
    }
@@ -28,7 +28,7 @@ int main(int argc,char*argv[]){
  //Verifica el resultado
   for(i=0;i<N;i++){
    for(j=0;j<N;j++){
-	check=check&&(A[i*N+j]==i*j);
+	   check=check&&(A[i*N+j]==i*j);
    }
   }   
 
