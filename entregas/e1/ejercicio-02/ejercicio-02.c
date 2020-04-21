@@ -33,7 +33,7 @@ int resultado_valido(double *M) {
 
 int main(int argc, char*argv[]) {
   double *A, *B, *C, *AB, *D;
-  int i, j, k, check;
+  int i, j, k;
   double timetick;
 
   //Controla los argumentos al programa
