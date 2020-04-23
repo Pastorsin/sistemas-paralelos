@@ -25,7 +25,7 @@ int resultado_valido(double *D) {
 }
 
 int main(int argc, char*argv[]) {
-  double *A, *B, *C, *AB, *D;
+  double *A, *B, *C, *dAB, *D;
   double maxA, minA, maxB, minB, maxC, minC;
   double totalA, totalB, totalC, avgA, avgB, avgC;
   int i, j, k;
@@ -42,7 +42,7 @@ int main(int argc, char*argv[]) {
   A = (double*)malloc(sizeof(double) * N * N);
   B = (double*)malloc(sizeof(double) * N * N);
   C = (double*)malloc(sizeof(double) * N * N);
-  AB = (double*)malloc(sizeof(double) * N * N);
+  dAB = (double*)malloc(sizeof(double) * N * N);
   D = (double*)malloc(sizeof(double) * N * N);
 
   //Inicializa las matrices A,B y C en 1
@@ -69,12 +69,18 @@ int main(int argc, char*argv[]) {
 
   timetick = dwalltime();
 
-  // Calcular AB=A.B
-  // A por filas, B por columnas, AB por filas
+  // Calcular d
 
   for (i = 0; i < N; i++) {
     for (j = 0; j < N; j++) {
-      double suma_parcial = 0;
+      // Mínimo, Máximo y Suma de C
+      if (C[i * N + j] < minC)
+        minC = C[i * N + j];
+
+      if (C[i * N + j] > maxC)
+        maxC = C[i * N + j];
+
+      totalC += C[i * N + j];
 
       // Mínimo, Máximo y Suma de B
       if (B[i * N + j] < minB)
@@ -93,38 +99,6 @@ int main(int argc, char*argv[]) {
         maxA = A[i * N + j];
 
       totalA += A[i * N + j];
-
-      // Multiplicación
-      for (k = 0; k < N; k++) {
-        suma_parcial += A[i * N + k] * B[j * N + k];
-      }
-
-      AB[i * N + j] = suma_parcial;
-    }
-  }
-
-  // Calcular D=AB.C
-  // AB por filas, C por columnas, D por filas
-
-  for (i = 0; i < N; i++) {
-    for (j = 0; j < N; j++) {
-      double suma_parcial = 0;
-
-      // Mínimo, Máximo y Suma de C
-      if (C[i * N + j] < minC)
-        minC = C[i * N + j];
-
-      if (C[i * N + j] > maxC)
-        maxC = C[i * N + j];
-
-      totalC += C[i * N + j];
-
-      // Multiplicación
-      for (k = 0; k < N; k++) {
-        suma_parcial += AB[i * N + k] * C[j * N + k];
-      }
-
-      D[i * N + j] = suma_parcial;
     }
   }
 
@@ -135,10 +109,31 @@ int main(int argc, char*argv[]) {
 
   d = (maxA * maxB * maxC) - (minA * minB * minC) / (avgA * avgB * avgC);
 
-  // Calcular D=d.D
+  // Calcular dAB = d.A.B
   for (i = 0; i < N; i++) {
     for (j = 0; j < N; j++) {
-      D[i * N + j] *= d;
+      double suma_parcial = 0;
+      
+      // Multiplicación
+      for (k = 0; k < N; k++) {
+        suma_parcial += d * A[i * N + k] * B[j * N + k];
+      }
+
+      dAB[i * N + j] = suma_parcial;
+    }
+  }
+
+  // Calcular D=dAB.C
+  for (i = 0; i < N; i++) {
+    for (j = 0; j < N; j++) {
+      double suma_parcial = 0;
+      
+      // Multiplicación
+      for (k = 0; k < N; k++) {
+        suma_parcial += dAB[i * N + k] * C[j * N + k];
+      }
+
+      D[i * N + j] = suma_parcial;
     }
   }
 
@@ -153,7 +148,7 @@ int main(int argc, char*argv[]) {
   free(A);
   free(B);
   free(C);
-  free(AB);
+  free(dAB);
   free(D);
 
   return (0);
