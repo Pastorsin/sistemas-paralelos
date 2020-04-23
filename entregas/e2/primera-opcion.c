@@ -30,7 +30,6 @@ int main(int argc, char*argv[]) {
   double totalA, totalB, totalC, avgA, avgB, avgC;
   int i, j, k;
   int d;
-  int check = 1;
   double timetick;
 
   //Controla los argumentos al programa
@@ -47,6 +46,9 @@ int main(int argc, char*argv[]) {
   D = (double*)malloc(sizeof(double) * N * N);
 
   //Inicializa las matrices A,B y C en 1
+  // A por filas
+  // B por columnas
+  // C por columnas
   for (i = 0; i < N; i++) {
     for (j = 0; j < N; j++) {
       A[i * N + j] = 1;
@@ -55,9 +57,9 @@ int main(int argc, char*argv[]) {
     }
   }
 
-  maxA, minA = A[0];
-  maxB, minB = B[0];
-  maxC, minC = C[0];
+  maxA = minA = A[0];
+  maxB = minB = B[0];
+  maxC = minC = C[0];
   totalA = 0;
   totalB = 0;
   totalC = 0;
@@ -75,7 +77,7 @@ int main(int argc, char*argv[]) {
       double suma_parcial = 0;
 
       // Mínimo, Máximo y Suma de B
-      if (B[i * N + j] > minB)
+      if (B[i * N + j] < minB)
         minB = B[i * N + j];
 
       if (B[i * N + j] > maxB)
@@ -84,7 +86,7 @@ int main(int argc, char*argv[]) {
       totalB += B[i * N + j];
 
       // Mínimo, Máximo y Suma de A
-      if (A[i * N + j] > minA)
+      if (A[i * N + j] < minA)
         minA = A[i * N + j];
 
       if (A[i * N + j] > maxA)
@@ -109,7 +111,7 @@ int main(int argc, char*argv[]) {
       double suma_parcial = 0;
 
       // Mínimo, Máximo y Suma de C
-      if (C[i * N + j] > minC)
+      if (C[i * N + j] < minC)
         minC = C[i * N + j];
 
       if (C[i * N + j] > maxC)
