@@ -51,14 +51,18 @@ int main(int argc, char*argv[]) {
   for (i = 0; i < N; i++) {
     for (j = 0; j < N; j++) {
       A[i * N + j] = cont;
-      B[j * N + i] = cont;
-      C[j * N + i] = cont;
+      B[i * N + j] = cont;
+      C[i * N + j] = cont;
       cont++;
     }
   }
-  
+
+
+  printf("A:\n");
   imprimir(A);
+  printf("B:\n");
   imprimir(B);
+  printf("C:\n");
   imprimir(C);
 
   maxA = minA = A[0];
@@ -107,6 +111,9 @@ int main(int argc, char*argv[]) {
     }
   }
 
+  printf("AB:\n");
+  imprimir(AB);
+
   // Calcular D=AB.C
   // AB por filas, C por columnas, D por filas
 
@@ -132,12 +139,16 @@ int main(int argc, char*argv[]) {
     }
   }
 
+  printf("aber: %f, %f,%f,%f,%f,%f,%f,%f,%f\n", minA, maxA, minB, maxB, minC, maxC, totalA,totalB,totalC);
+  
+
   // Calcular d
   avgA = totalA / (N * N);
   avgB = totalB / (N * N);
   avgC = totalC / (N * N);
 
   d = ((maxA * maxB * maxC) - (minA * minB * minC)) / (avgA * avgB * avgC);
+  printf("d = %d\n", d);
 
   // Calcular D=d.D
   for (i = 0; i < N; i++) {

@@ -133,7 +133,7 @@ int main(int argc, char*argv[]) {
   avgB = totalB / (N * N);
   avgC = totalC / (N * N);
 
-  d = (maxA * maxB * maxC) - (minA * minB * minC) / (avgA * avgB * avgC);
+  d = ((maxA * maxB * maxC) - (minA * minB * minC)) / (avgA * avgB * avgC);
 
   // Calcular D=d.D
   for (i = 0; i < N; i++) {
