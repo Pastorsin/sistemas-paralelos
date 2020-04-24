@@ -2,7 +2,7 @@
 #include<stdlib.h>
 
 //Dimension por defecto de las matrices
-int N = 100;
+int N = 2;
 
 //Para calcular tiempo
 double dwalltime() {
@@ -15,12 +15,16 @@ double dwalltime() {
 }
 
 int resultado_valido(double *D) {
-  for (int i = 0; i < N; i++) {
-    for (int j = 0; j < N; j++) {
-      if (D[i * N + j] != 0)
-        return 0;
+  return (D[0] == 6 && D[1] == 22 && D[2] == 26 && D[3] == 90);
+}
+
+int imprimir(double *M) {
+  for (int i = 0; i < N; i++)
+  {
+    for (int j = 0; j < N; j++)
+    {
+      printf("%ix%i --> %f\n", i, j, M[i * N + j]);
     }
-    return 1;
   }
 }
 
@@ -31,12 +35,6 @@ int main(int argc, char*argv[]) {
   int i, j, k;
   int d;
   double timetick;
-
-  //Controla los argumentos al programa
-  if ((argc != 2) || ((N = atoi(argv[1])) <= 0) ) {
-    printf("\nUsar: %s n\n  n: Dimension de la matriz (nxn X nxn)\n", argv[0]);
-    exit(1);
-  }
 
   //Aloca memoria para las matrices
   A = (double*)malloc(sizeof(double) * N * N);
@@ -49,13 +47,19 @@ int main(int argc, char*argv[]) {
   // A por filas
   // B por columnas
   // C por columnas
+  int cont = 0;
   for (i = 0; i < N; i++) {
     for (j = 0; j < N; j++) {
-      A[i * N + j] = 1;
-      B[j * N + i] = 1;
-      C[j * N + i] = 1;
+      A[i * N + j] = cont;
+      B[j * N + i] = cont;
+      C[j * N + i] = cont;
+      cont++;
     }
   }
+  
+  imprimir(A);
+  imprimir(B);
+  imprimir(C);
 
   maxA = minA = A[0];
   maxB = minB = B[0];
@@ -133,7 +137,7 @@ int main(int argc, char*argv[]) {
   avgB = totalB / (N * N);
   avgC = totalC / (N * N);
 
-  d = (maxA * maxB * maxC) - (minA * minB * minC) / (avgA * avgB * avgC);
+  d = ((maxA * maxB * maxC) - (minA * minB * minC)) / (avgA * avgB * avgC);
 
   // Calcular D=d.D
   for (i = 0; i < N; i++) {
@@ -149,6 +153,8 @@ int main(int argc, char*argv[]) {
   } else {
     printf("Multiplicacion de matrices resultado erroneo\n");
   }
+
+  imprimir(D);
 
   free(A);
   free(B);
