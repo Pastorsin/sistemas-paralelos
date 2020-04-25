@@ -108,57 +108,29 @@ void multiplicar(void *ptr) {
 
   // Comunicación de variables
   if (id != 0) {
-
+    pthread_mutex_lock(&mutex_totalC);
     // Mínimos
-    pthread_mutex_lock(&mutex_minA);
     if (minA_local < minA)
       minA = minA_local;
-    pthread_mutex_unlock(&mutex_minA);
 
-    pthread_mutex_lock(&mutex_minB);
     if (minB_local < minB)
       minB = minB_local;
-    pthread_mutex_unlock(&mutex_minB);
 
-    pthread_mutex_lock(&mutex_minC);
     if (minC_local < minC)
       minC = minC_local;
-    pthread_mutex_unlock(&mutex_minC);
 
     // Máximos
-    pthread_mutex_lock(&mutex_maxA);
     if (maxA_local > maxA)
       maxA = maxA_local;
-    pthread_mutex_unlock(&mutex_maxA);
 
-    pthread_mutex_lock(&mutex_maxB);
     if (maxB_local > maxB)
       maxB = maxB_local;
-    pthread_mutex_unlock(&mutex_maxB);
-
-    pthread_mutex_lock(&mutex_maxC);
-    if (maxC_local > maxC)
-      maxC = maxC_local;
-    pthread_mutex_unlock(&mutex_maxC);
 
     // Totales
-    if (totalA_local > 0) {
-      pthread_mutex_lock(&mutex_totalA);
       totalA += totalA_local;
-      pthread_mutex_unlock(&mutex_totalA);
-    }
-
-    if (totalB_local > 0) {
-      pthread_mutex_lock(&mutex_totalB);
-      totalB += totalB_local;
-      pthread_mutex_unlock(&mutex_totalB);
-    }
-
-    if (totalC_local > 0) {
-      pthread_mutex_lock(&mutex_totalC);
+      totalB += totalB_local;      
       totalC += totalC_local;
       pthread_mutex_unlock(&mutex_totalC);
-    }
   }
 
   pthread_barrier_wait(&barrera);
