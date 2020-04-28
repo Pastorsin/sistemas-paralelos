@@ -3,7 +3,7 @@
 #include<pthread.h>
 
 // Dimension por defecto de las matrices
-int N = 256;
+int N = 2;
 
 // Cantidad de Threads
 int T = 6;
@@ -15,8 +15,7 @@ double totalA, totalB, totalC;
 double d;
 
 // Locks
-pthread_mutex_t mutex_maxA, mutex_minA, mutex_maxB, mutex_minB, mutex_maxC, mutex_minC;
-pthread_mutex_t mutex_totalA, mutex_totalB, mutex_totalC;
+pthread_mutex_t mutexA, mutexB, mutexC;
 pthread_barrier_t barrera;
 
 //Para calcular tiempo
@@ -29,6 +28,19 @@ double dwalltime() {
   return sec;
 }
 
+int resultado_valido(double *D) {
+  return (D[0] == 24 && D[1] == 88 && D[2] == 104 && D[3] == 360);
+}
+
+int imprimir(double *M) {
+  for (int i = 0; i < N; i++)
+  {
+    for (int j = 0; j < N; j++)
+    {
+      printf("%ix%i --> %f\n", i, j, M[i * N + j]);
+    }
+  }
+}
 
 void multiplicar(void *ptr) {
   int id = * (int *) ptr;
@@ -106,85 +118,37 @@ void multiplicar(void *ptr) {
     }
   }
 
-  // Comunicación de variables
-  if (id != 0) {
 
-    // Mínimos
-    pthread_mutex_lock(&mutex_minA);
-    if (minA_local < minA)
-      minA = minA_local;
-    pthread_mutex_unlock(&mutex_minA);
+  // Mínimo, Máximo y Total de A
+  pthread_mutex_lock(&mutexA);
+  if (minA_local < minA)
+    minA = minA_local;
+  if (maxA_local > maxA)
+    maxA = maxA_local;
+  totalA += totalA_local;
+  pthread_mutex_unlock(&mutexA);
 
-    pthread_mutex_lock(&mutex_minB);
-    if (minB_local < minB)
-      minB = minB_local;
-    pthread_mutex_unlock(&mutex_minB);
+  // Mínimo, Máximo y Total de B
+  pthread_mutex_lock(&mutexB);
+  if (minB_local < minB)
+    minB = minB_local;
+  if (maxB_local > maxB)
+    maxB = maxB_local;
+  totalB += totalB_local;
+  pthread_mutex_unlock(&mutexB);
 
-    pthread_mutex_lock(&mutex_minC);
-    if (minC_local < minC)
-      minC = minC_local;
-    pthread_mutex_unlock(&mutex_minC);
-
-    // Máximos
-    pthread_mutex_lock(&mutex_maxA);
-    if (maxA_local > maxA)
-      maxA = maxA_local;
-    pthread_mutex_unlock(&mutex_maxA);
-
-    pthread_mutex_lock(&mutex_maxB);
-    if (maxB_local > maxB)
-      maxB = maxB_local;
-    pthread_mutex_unlock(&mutex_maxB);
-
-    pthread_mutex_lock(&mutex_maxC);
-    if (maxC_local > maxC)
-      maxC = maxC_local;
-    pthread_mutex_unlock(&mutex_maxC);
-
-    // Totales
-    if (totalA_local > 0) {
-      pthread_mutex_lock(&mutex_totalA);
-      totalA += totalA_local;
-      pthread_mutex_unlock(&mutex_totalA);
-    }
-
-    if (totalB_local > 0) {
-      pthread_mutex_lock(&mutex_totalB);
-      totalB += totalB_local;
-      pthread_mutex_unlock(&mutex_totalB);
-    }
-
-    if (totalC_local > 0) {
-      pthread_mutex_lock(&mutex_totalC);
-      totalC += totalC_local;
-      pthread_mutex_unlock(&mutex_totalC);
-    }
-  }
+  // Mínimo, Máximo y Total de C
+  pthread_mutex_lock(&mutexC);
+  if (minC_local < minC)
+    minC = minC_local;
+  if (maxC_local > maxC)
+    maxC = maxC_local;
+  totalC += totalC_local;
+  pthread_mutex_unlock(&mutexC);
 
   pthread_barrier_wait(&barrera);
 
   if (id == 0) {
-
-    // Máximos
-    if (maxA_local > maxA)
-      maxA = maxA_local;
-    if (maxB_local > maxB)
-      maxB = maxB_local;
-    if (maxC_local > maxC)
-      maxC = maxC_local;
-
-    // Mínimos
-    if (minA_local < minA)
-      minA = minA_local;
-    if (minB_local < minB)
-      minB = minB_local;
-    if (minC_local < minC)
-      minC = minC_local;
-
-    // Totales
-    totalA += totalA_local;
-    totalB += totalB_local;
-    totalC += totalC_local;
 
     // Calcular d
     double avgA = totalA / (N * N);
@@ -202,31 +166,12 @@ void multiplicar(void *ptr) {
       D[i * N + j] *= d;
     }
   }
-
 }
-
-
-int resultado_valido(double *D) {
-  for (int i = 0; i < N; i++) {
-    for (int j = 0; j < N; j++) {
-      if (D[i * N + j] != 0)
-        return 0;
-    }
-    return 1;
-  }
-}
-
 
 int main(int argc, char*argv[]) {
   double timetick;
   int ids[T], i, j;
   pthread_t multiplicacion_thread[T];
-
-  //Controla los argumentos al programa
-  if ((argc != 2) || ((N = atoi(argv[1])) <= 0) ) {
-    printf("\nUsar: %s n\n  n: Dimension de la matriz (nxn X nxn)\n", argv[0]);
-    exit(1);
-  }
 
   //Aloca memoria para las matrices
   A = (double*)malloc(sizeof(double) * N * N);
@@ -239,11 +184,13 @@ int main(int argc, char*argv[]) {
   // A por filas
   // B por columnas
   // C por columnas
+  int cont = 0;
   for (i = 0; i < N; i++) {
     for (j = 0; j < N; j++) {
-      A[i * N + j] = 1;
-      B[j * N + i] = 1;
-      C[j * N + i] = 1;
+      A[i * N + j] = cont;
+      B[i * N + j] = cont;
+      C[i * N + j] = cont;
+      cont++;
     }
   }
 
@@ -254,6 +201,9 @@ int main(int argc, char*argv[]) {
   totalB = 0;
   totalC = 0;
 
+  pthread_mutex_init(&mutexA, NULL);
+  pthread_mutex_init(&mutexB, NULL);
+  pthread_mutex_init(&mutexC, NULL);
   pthread_barrier_init(&barrera, NULL, T);
 
   //Realiza la multiplicacion
@@ -269,6 +219,8 @@ int main(int argc, char*argv[]) {
 
 
   printf("Multiplicacion de matrices de %dx%d. Tiempo en segundos %f\n", N, N, dwalltime() - timetick);
+
+  imprimir(D);
 
   if (resultado_valido(D)) {
     printf("Multiplicacion de matrices resultado correcto\n");

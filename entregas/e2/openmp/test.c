@@ -3,7 +3,7 @@
 #include<omp.h>
 
 //Dimension por defecto de las matrices
-int N = 256;
+int N = 2;
 
 //Para calcular tiempo
 double dwalltime() {
@@ -16,14 +16,19 @@ double dwalltime() {
 }
 
 int resultado_valido(double *D) {
-  for (int i = 0; i < N; i++) {
-    for (int j = 0; j < N; j++) {
-      if (D[i * N + j] != 0)
-        return 0;
+  return (D[0] == 24 && D[1] == 88 && D[2] == 104 && D[3] == 360);
+}
+
+int imprimir(double *M) {
+  for (int i = 0; i < N; i++)
+  {
+    for (int j = 0; j < N; j++)
+    {
+      printf("%ix%i --> %f\n", i, j, M[i * N + j]);
     }
-    return 1;
   }
 }
+
 
 int main(int argc, char*argv[]) {
   double *A, *B, *C, *AB, *D;
@@ -34,12 +39,11 @@ int main(int argc, char*argv[]) {
   double timetick;
 
   //Controla los argumentos al programa
-  if (argc < 3) {
-    printf("\n Faltan argumentos:: N dimension de la matriz, T cantidad de threads \n");
+  if (argc < 2) {
+    printf("\n Faltan argumentos:: T cantidad de threads \n");
     return 0;
   }
-  N = atoi(argv[1]);
-  int numThreads = atoi(argv[2]);
+  int numThreads = atoi(argv[1]);
   omp_set_num_threads(numThreads);
 
   //Aloca memoria para las matrices
@@ -53,11 +57,13 @@ int main(int argc, char*argv[]) {
   // A por filas
   // B por columnas
   // C por columnas
+  int cont = 0;
   for (i = 0; i < N; i++) {
     for (j = 0; j < N; j++) {
-      A[i * N + j] = 1;
-      B[j * N + i] = 1;
-      C[j * N + i] = 1;
+      A[i * N + j] = cont;
+      B[i * N + j] = cont;
+      C[i * N + j] = cont;
+      cont++;
     }
   }
 
@@ -73,10 +79,10 @@ int main(int argc, char*argv[]) {
 
   timetick = dwalltime();
 
-  // Calcular AB=A.B
-  // A por filas, B por columnas, AB por filas
   #pragma omp parallel
   {
+    // Calcular AB=A.B
+    // A por filas, B por columnas, AB por filas
     #pragma omp for private(i,j,k) reduction(+:totalA,totalB) reduction(max:maxA,maxB) reduction(min:minA,minB) nowait
     for (i = 0; i < N; i++) {
       for (j = 0; j < N; j++) {
@@ -152,6 +158,8 @@ int main(int argc, char*argv[]) {
       }
     }
   }
+
+  imprimir(D);
 
   printf("Multiplicacion de matrices de %dx%d. Tiempo en segundos %f\n", N, N, dwalltime() - timetick);
 

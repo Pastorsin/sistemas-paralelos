@@ -2,7 +2,7 @@
 #include<stdlib.h>
 
 //Dimension por defecto de las matrices
-int N = 100;
+int N = 256;
 
 //Para calcular tiempo
 double dwalltime() {
@@ -20,8 +20,8 @@ int resultado_valido(double *D) {
       if (D[i * N + j] != 0)
         return 0;
     }
-    return 1;
   }
+  return 1;
 }
 
 int main(int argc, char*argv[]) {
