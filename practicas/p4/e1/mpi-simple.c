@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "mpi.h" 
+#include "mpi.h"
 
 #define MASTER 0
 
@@ -22,11 +22,11 @@ int main(int argc, char* argv[])
   /* MPI_Init returns once it has started up processes */
   MPI_Init( &argc, &argv );
 
-  /* size and rank will become ubiquitous */ 
+  /* size and rank will become ubiquitous */
   MPI_Comm_size( MPI_COMM_WORLD, &size );
   MPI_Comm_rank( MPI_COMM_WORLD, &myrank );
 
-  /* 
+  /*
   ** SPMD - conditionals based upon rank
   ** will also become ubiquitous
   */
@@ -35,17 +35,17 @@ int main(int argc, char* argv[])
     sprintf(message, "Hola Mundo! Soy el proceso %d!", myrank);
     /* send to the master process */
     dest = MASTER;
-    /* 
+    /*
     ** Send our first message!
     ** use strlen()+1, so that we include the string terminator, '\0'
     */
-    MPI_Send(message,strlen(message)+1, MPI_CHAR, dest, tag, MPI_COMM_WORLD);
+    MPI_Send(message, strlen(message) + 1, MPI_CHAR, dest, tag, MPI_COMM_WORLD);
 
   }
   else {             /* i.e. this is the master process */
     printf("Mensajes recibido por el proceso %d (master):\n", myrank);
     /* loop over all the over processes */
-    for (source=1; source<size; source++) {
+    for (source = 1; source < size; source++) {
       /* recieving their messages.. */
       MPI_Recv(message, BUFSIZ, MPI_CHAR, source, tag, MPI_COMM_WORLD, &status);
       /* and then printing them */
