@@ -1,0 +1,60 @@
+------------------------------------
+N=10000000
+--------------------
+-- Blocking Ring P=4
+ Tiempo de comunicacion : 0.229041 seconds
+--------------------
+-- NON Blocking Ring P=4
+ Tiempo de comunicacion : 0.109924 seconds
+--------------------
+-- Blocking Ring P=8
+ Tiempo de comunicacion : 0.617064 seconds
+--------------------
+-- NON Blocking Ring P=8
+ Tiempo de comunicacion : 0.147453 seconds
+--------------------
+-- Blocking Ring P=16
+ Tiempo de comunicacion : 2.570633 seconds
+--------------------
+-- NON Blocking Ring P=16
+ Tiempo de comunicacion : 0.289065 seconds
+------------------------------------
+N=20000000
+--------------------
+-- Blocking Ring P=4
+ Tiempo de comunicacion : 0.456103 seconds
+--------------------
+-- NON Blocking Ring P=4
+ Tiempo de comunicacion : 0.247380 seconds
+--------------------
+-- Blocking Ring P=8
+ Tiempo de comunicacion : 1.124511 seconds
+--------------------
+-- NON Blocking Ring P=8
+ Tiempo de comunicacion : 0.296388 seconds
+--------------------
+-- Blocking Ring P=16
+ Tiempo de comunicacion : 5.113203 seconds
+--------------------
+-- NON Blocking Ring P=16
+ Tiempo de comunicacion : 0.453023 seconds
+------------------------------------
+N=30000000
+--------------------
+-- Blocking Ring P=4
+ Tiempo de comunicacion : 0.673874 seconds
+--------------------
+-- NON Blocking Ring P=4
+ Tiempo de comunicacion : 0.294427 seconds
+--------------------
+-- Blocking Ring P=8
+ Tiempo de comunicacion : 2.049396 seconds
+--------------------
+-- NON Blocking Ring P=8
+ Tiempo de comunicacion : 0.442893 seconds
+--------------------
+-- Blocking Ring P=16
+ Tiempo de comunicacion : 9.578728 seconds
+--------------------
+-- NON Blocking Ring P=16
+ Tiempo de comunicacion : 1.293707 seconds
