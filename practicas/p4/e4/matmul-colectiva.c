@@ -109,5 +109,5 @@ int main(int argc, char* argv[]) {
 	free(b);
 	free(c);
 
-	return 0;
+	return (0);
 }
