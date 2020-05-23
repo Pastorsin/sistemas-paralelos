@@ -38,10 +38,7 @@ int main(int argc, char* argv[]) {
 
 
 	/* Lee parámetros de la línea de comando */
-	if ((argc != 2) || ((N = atoi(argv[1])) <= 0) ) {
-		printf("\nUsar: %s size \n  size: Dimension de la matriz\n", argv[0]);
-		exit(1);
-	}
+	N = 2;
 
 	/* Inicializar MPI */
 	MPI_Init(&argc, &argv);
