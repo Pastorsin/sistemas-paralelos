@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <omp.h>
 #include <mpi.h>
 
 #define COORDINATOR 0
@@ -33,10 +34,16 @@ int main(int argc, char* argv[]) {
 
 
 	/* Lee parámetros de la línea de comando */
-	if ((argc != 2) || ((N = atoi(argv[1])) <= 0) ) {
-		printf("\nUsar: %s size \n  size: Dimension de la matriz\n", argv[0]);
+	if (argc < 3) {
+		printf("\n Faltan argumentos:: N dimension de la matriz, T cantidad de threads \n");
 		exit(1);
 	}
+
+	N = atoi(argv[1]);
+	int T = atoi(argv[2]);
+
+	/* Inicializar OpenMP */
+	omp_set_num_threads(T);
 
 	/* Inicializar MPI */
 	MPI_Init(&argc, &argv);
@@ -63,8 +70,8 @@ int main(int argc, char* argv[]) {
 		D = (double*)malloc(sizeof(double) * N * stripSize);
 	}
 
-	B = (double*) malloc(sizeof(double) * N * N);
-	C = (double*) malloc(sizeof(double) * N * N);
+	B = (double*)malloc(sizeof(double) * N * N);
+	C = (double*)malloc(sizeof(double) * N * N);
 
 	// Matrices temporales
 	AB = (double*)malloc(sizeof(double) * N * stripSize);
@@ -106,58 +113,63 @@ int main(int argc, char* argv[]) {
 
 	// Calcular strip AB=A.B
 	// A por filas, B por columnas, AB por filas
-	for (i = 0; i < stripSize; i++) {
-		for (j = 0; j < N; j++) {
-			double suma_parcial = 0;
+	#pragma omp parallel
+	{
+		#pragma omp for private(i,j,k) reduction(+:totalA_local,totalB_local) reduction(max:maxA_local,maxB_local) reduction(min:minA_local,minB_local) nowait
+		for (i = 0; i < stripSize; i++) {
+			for (j = 0; j < N; j++) {
+				double suma_parcial = 0;
 
-			// Mínimo, Máximo y Suma de B
-			if (B[i * N + j] < minB_local)
-				minB_local = B[i * N + j];
+				// Mínimo, Máximo y Suma de B
+				if (B[i * N + j] < minB_local)
+					minB_local = B[i * N + j];
 
-			if (B[i * N + j] > maxB_local)
-				maxB_local = B[i * N + j];
+				if (B[i * N + j] > maxB_local)
+					maxB_local = B[i * N + j];
 
-			totalB_local += B[i * N + j];
+				totalB_local += B[i * N + j];
 
-			// Mínimo, Máximo y Suma de A
-			if (A[i * N + j] < minA_local)
-				minA_local = A[i * N + j];
+				// Mínimo, Máximo y Suma de A
+				if (A[i * N + j] < minA_local)
+					minA_local = A[i * N + j];
 
-			if (A[i * N + j] > maxA_local)
-				maxA_local = A[i * N + j];
+				if (A[i * N + j] > maxA_local)
+					maxA_local = A[i * N + j];
 
-			totalA_local += A[i * N + j];
+				totalA_local += A[i * N + j];
 
-			// Multiplicación
-			for (k = 0; k < N; k++) {
-				suma_parcial += A[i * N + k] * B[j * N + k];
+				// Multiplicación
+				for (k = 0; k < N; k++) {
+					suma_parcial += A[i * N + k] * B[j * N + k];
+				}
+
+				AB[i * N + j] = suma_parcial;
 			}
-
-			AB[i * N + j] = suma_parcial;
 		}
-	}
 
-	// Calcular strip D=AB.C
-	// AB por filas, C por columnas, D por filas
-	for (i = 0; i < stripSize; i++) {
-		for (j = 0; j < N; j++) {
-			double suma_parcial = 0;
+		// Calcular strip D=AB.C
+		// AB por filas, C por columnas, D por filas
+		#pragma omp for private(i,j,k) reduction(+:totalC_local) reduction(max:maxC_local) reduction(min:minC_local)
+		for (i = 0; i < stripSize; i++) {
+			for (j = 0; j < N; j++) {
+				double suma_parcial = 0;
 
-			// Mínimo, Máximo y Suma de C
-			if (C[i * N + j] < minC_local)
-				minC_local = C[i * N + j];
+				// Mínimo, Máximo y Suma de C
+				if (C[i * N + j] < minC_local)
+					minC_local = C[i * N + j];
 
-			if (C[i * N + j] > maxC_local)
-				maxC_local = C[i * N + j];
+				if (C[i * N + j] > maxC_local)
+					maxC_local = C[i * N + j];
 
-			totalC_local += C[i * N + j];
+				totalC_local += C[i * N + j];
 
-			// Multiplicación
-			for (k = 0; k < N; k++) {
-				suma_parcial += AB[i * N + k] * C[j * N + k];
+				// Multiplicación
+				for (k = 0; k < N; k++) {
+					suma_parcial += AB[i * N + k] * C[j * N + k];
+				}
+
+				D[i * N + j] = suma_parcial;
 			}
-
-			D[i * N + j] = suma_parcial;
 		}
 	}
 
@@ -194,6 +206,7 @@ int main(int argc, char* argv[]) {
 	commTimes[5] = MPI_Wtime();
 
 	/* Se calcula D=d.D */
+	#pragma omp for private(i,j)
 	for (i = 0; i < stripSize; i++) {
 		for (j = 0; j < N; j++) {
 			D[i * N + j] *= d;
