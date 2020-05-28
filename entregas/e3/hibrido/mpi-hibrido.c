@@ -19,7 +19,7 @@ int resultado_valido(double *D) {
 }
 
 int main(int argc, char* argv[]) {
-	int i, j, k, numProcs, rank, stripSize;
+	int i, j, k, numProcs, rank, stripSize, T;
 	double *A, *B, *C, *AB, *D, d;
 
 	double maxA_local, maxB_local, maxC_local, minA_local, minB_local, minC_local;
@@ -34,13 +34,16 @@ int main(int argc, char* argv[]) {
 
 
 	/* Lee parámetros de la línea de comando */
-	if ((argc != 2) || ((N = atoi(argv[1])) <= 0) ) {
-		printf("\nUsar: %s size \n  size: Dimension de la matriz\n", argv[0]);
+	if (argc < 3) {
+		printf("\n Faltan argumentos:: N dimension de la matriz, T cantidad de threads \n");
 		exit(1);
 	}
 
+	N = atoi(argv[1]);
+	T = atoi(argv[2]);
+
 	/* Inicializar OpenMP */
-	omp_set_num_threads(2);
+	omp_set_num_threads(T);
 
 	/* Inicializar MPI */
 	MPI_Init(&argc, &argv);
@@ -203,7 +206,7 @@ int main(int argc, char* argv[]) {
 	commTimes[5] = MPI_Wtime();
 
 	/* Se calcula D=d.D */
-	#pragma omp for private(i,j)
+	#pragma omp parallel for private(i,j)
 	for (i = 0; i < stripSize; i++) {
 		for (j = 0; j < N; j++) {
 			D[i * N + j] *= d;
