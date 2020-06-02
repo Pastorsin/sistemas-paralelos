@@ -7,6 +7,9 @@
 // Dimensión de las matrices
 int N;
 
+// Número de comunicaciones
+int N_COMM = 3;
+
 int resultado_valido(double *D) {
 	for (int i = 0; i < N; i++) {
 		for (int j = 0; j < N; j++) {
@@ -18,7 +21,7 @@ int resultado_valido(double *D) {
 }
 
 int main(int argc, char* argv[]) {
-	int i, j, k, numProcs, rank, stripSize;
+	int i, j, k, numProcs, rank, stripSize, offset, index;
 	double *A, *B, *C, *AB, *D, d;
 
 	double maxA_local, maxB_local, maxC_local, minA_local, minB_local, minC_local;
@@ -29,8 +32,7 @@ int main(int argc, char* argv[]) {
 	double avgA, avgB, avgC;
 
 	MPI_Status status;
-	double commTimes[8], maxCommTimes[8], minCommTimes[8], commTime = 0, totalTime;
-
+	double commTimes[N_COMM * 2], maxCommTimes[N_COMM * 2], minCommTimes[N_COMM * 2], commTime = 0, totalTime;
 
 	/* Lee parámetros de la línea de comando */
 	if ((argc != 2) || ((N = atoi(argv[1])) <= 0) ) {
@@ -50,6 +52,10 @@ int main(int argc, char* argv[]) {
 
 	// Porción de cada worker
 	stripSize = N / numProcs;
+
+	// Offset que tendrá que sumarle cada proceso a las matrices..
+	// ..comunicadas por Broadcast
+	offset = stripSize * rank;
 
 	/* Reserva de memoria */
 
@@ -110,14 +116,19 @@ int main(int argc, char* argv[]) {
 		for (j = 0; j < N; j++) {
 			double suma_parcial = 0;
 
+			/* Este índice se utiliza para acceder
+			a las matrices que fueron comunicadas mediante
+			broadcast */
+			index = (i + offset) * N + j;
+
 			// Mínimo, Máximo y Suma de B
-			if (B[i * N + j] < minB_local)
-				minB_local = B[i * N + j];
+			if (B[index] < minB_local)
+				minB_local = B[index];
 
-			if (B[i * N + j] > maxB_local)
-				maxB_local = B[i * N + j];
+			if (B[index] > maxB_local)
+				maxB_local = B[index];
 
-			totalB_local += B[i * N + j];
+			totalB_local += B[index];
 
 			// Mínimo, Máximo y Suma de A
 			if (A[i * N + j] < minA_local)
@@ -143,14 +154,19 @@ int main(int argc, char* argv[]) {
 		for (j = 0; j < N; j++) {
 			double suma_parcial = 0;
 
+			/* Este índice se utiliza para acceder
+			a las matrices que fueron comunicadas mediante
+			broadcast */
+			index = (i + offset) * N + j;
+
 			// Mínimo, Máximo y Suma de C
-			if (C[i * N + j] < minC_local)
-				minC_local = C[i * N + j];
+			if (C[index] < minC_local)
+				minC_local = C[index];
 
-			if (C[i * N + j] > maxC_local)
-				maxC_local = C[i * N + j];
+			if (C[index] > maxC_local)
+				maxC_local = C[index];
 
-			totalC_local += C[i * N + j];
+			totalC_local += C[index];
 
 			// Multiplicación
 			for (k = 0; k < N; k++) {
@@ -165,33 +181,25 @@ int main(int argc, char* argv[]) {
 	/* 2º Comunicación --> Reducciones de mínimo, máximo y suma de ABC */
 	commTimes[2] = MPI_Wtime();
 
-	MPI_Reduce(&totalA_local, &totalA, 1, MPI_DOUBLE, MPI_SUM, COORDINATOR, MPI_COMM_WORLD);
-	MPI_Reduce(&totalB_local, &totalB, 1, MPI_DOUBLE, MPI_SUM, COORDINATOR, MPI_COMM_WORLD);
-	MPI_Reduce(&totalC_local, &totalC, 1, MPI_DOUBLE, MPI_SUM, COORDINATOR, MPI_COMM_WORLD);
+	MPI_Allreduce(&totalA_local, &totalA, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+	MPI_Allreduce(&totalB_local, &totalB, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+	MPI_Allreduce(&totalC_local, &totalC, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-	MPI_Reduce(&maxA_local, &maxA, 1, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
-	MPI_Reduce(&maxB_local, &maxB, 1, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
-	MPI_Reduce(&maxC_local, &maxC, 1, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
+	MPI_Allreduce(&maxA_local, &maxA, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+	MPI_Allreduce(&maxB_local, &maxB, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+	MPI_Allreduce(&maxC_local, &maxC, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
-	MPI_Reduce(&minA_local, &minA, 1, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);
-	MPI_Reduce(&minB_local, &minB, 1, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);
-	MPI_Reduce(&minC_local, &minC, 1, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);
+	MPI_Allreduce(&minA_local, &minA, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+	MPI_Allreduce(&minB_local, &minB, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+	MPI_Allreduce(&minC_local, &minC, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
 
 	commTimes[3] = MPI_Wtime();
 
-	/* El coordinador se encarga de calcular d y los demás esperan a que termine */
-	if (rank == COORDINATOR) {
-		avgA = totalA / (N * N);
-		avgB = totalB / (N * N);
-		avgC = totalC / (N * N);
+	avgA = totalA / (N * N);
+	avgB = totalB / (N * N);
+	avgC = totalC / (N * N);
 
-		d = ((maxA * maxB * maxC) - (minA * minB * minC)) / (avgA * avgB * avgC);
-	}
-
-	/* 3º Comunicación --> Se comunica d a todos los procesos */
-	commTimes[4] = MPI_Wtime();
-	MPI_Bcast(&d, 1, MPI_DOUBLE, COORDINATOR, MPI_COMM_WORLD);
-	commTimes[5] = MPI_Wtime();
+	d = ((maxA * maxB * maxC) - (minA * minB * minC)) / (avgA * avgB * avgC);
 
 	/* Se calcula D=d.D */
 	for (i = 0; i < stripSize; i++) {
@@ -200,14 +208,14 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-	/* 4º Comunicación --> Recolección de D=d.D al coordinador */
-	commTimes[6] = MPI_Wtime();
+	/* 3º Comunicación --> Recolección de D=d.D al coordinador */
+	commTimes[4] = MPI_Wtime();
 	MPI_Gather(D, N * stripSize, MPI_DOUBLE, D, N * stripSize, MPI_DOUBLE, COORDINATOR, MPI_COMM_WORLD);
-	commTimes[7] = MPI_Wtime();
+	commTimes[5] = MPI_Wtime();
 
 	/* Se obtienen los tiempos de comunicación */
-	MPI_Reduce(commTimes, minCommTimes, 8, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);
-	MPI_Reduce(commTimes, maxCommTimes, 8, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
+	MPI_Reduce(commTimes, minCommTimes, N_COMM * 2, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);
+	MPI_Reduce(commTimes, maxCommTimes, N_COMM * 2, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
 
 	MPI_Finalize();
 
@@ -222,14 +230,15 @@ int main(int argc, char* argv[]) {
 
 		// Se calculan los tiempos de comunicación y total
 
-		totalTime = maxCommTimes[7] - minCommTimes[0];
+		totalTime = maxCommTimes[(N_COMM * 2) - 1] - minCommTimes[0];
 
-		for (i = 0; i < 8; i += 2) {
+		for (i = 0; i < N_COMM * 2; i += 2) {
 			double final = maxCommTimes[i + 1];
 			double comienzo = minCommTimes[i];
 
-			commTime += final - comienzo;
+			printf("Comunicación %i: %f\n", i/2, final - comienzo);
 
+			commTime += final - comienzo;
 		}
 
 		printf("Multiplicacion de matrices (N=%d)\tTiempo total=%lf\tTiempo comunicacion=%lf\n", N, totalTime, commTime);

@@ -172,52 +172,64 @@ int main(int argc, char* argv[]) {
 				D[i * N + j] = suma_parcial;
 			}
 		}
-	}
 
+		/* 2º Comunicación --> Reducciones de mínimo, máximo y suma de ABC */
+		commTimes[2] = MPI_Wtime();
 
-	/* 2º Comunicación --> Reducciones de mínimo, máximo y suma de ABC */
-	commTimes[2] = MPI_Wtime();
+		#pragma omp single
+		{
+			MPI_Reduce(&totalA_local, &totalA, 1, MPI_DOUBLE, MPI_SUM, COORDINATOR, MPI_COMM_WORLD);
+			MPI_Reduce(&totalB_local, &totalB, 1, MPI_DOUBLE, MPI_SUM, COORDINATOR, MPI_COMM_WORLD);
+			MPI_Reduce(&totalC_local, &totalC, 1, MPI_DOUBLE, MPI_SUM, COORDINATOR, MPI_COMM_WORLD);
 
-	MPI_Reduce(&totalA_local, &totalA, 1, MPI_DOUBLE, MPI_SUM, COORDINATOR, MPI_COMM_WORLD);
-	MPI_Reduce(&totalB_local, &totalB, 1, MPI_DOUBLE, MPI_SUM, COORDINATOR, MPI_COMM_WORLD);
-	MPI_Reduce(&totalC_local, &totalC, 1, MPI_DOUBLE, MPI_SUM, COORDINATOR, MPI_COMM_WORLD);
+			MPI_Reduce(&maxA_local, &maxA, 1, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
+			MPI_Reduce(&maxB_local, &maxB, 1, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
+			MPI_Reduce(&maxC_local, &maxC, 1, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
 
-	MPI_Reduce(&maxA_local, &maxA, 1, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
-	MPI_Reduce(&maxB_local, &maxB, 1, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
-	MPI_Reduce(&maxC_local, &maxC, 1, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
+			MPI_Reduce(&minA_local, &minA, 1, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);
+			MPI_Reduce(&minB_local, &minB, 1, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);
+			MPI_Reduce(&minC_local, &minC, 1, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);
+		}
 
-	MPI_Reduce(&minA_local, &minA, 1, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);
-	MPI_Reduce(&minB_local, &minB, 1, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);
-	MPI_Reduce(&minC_local, &minC, 1, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);
+		commTimes[3] = MPI_Wtime();
 
-	commTimes[3] = MPI_Wtime();
+		/* El coordinador se encarga de calcular d y los demás esperan a que termine */
+		if (rank == COORDINATOR) {
+			#pragma omp single
+			{
+				avgA = totalA / (N * N);
+				avgB = totalB / (N * N);
+				avgC = totalC / (N * N);
 
-	/* El coordinador se encarga de calcular d y los demás esperan a que termine */
-	if (rank == COORDINATOR) {
-		avgA = totalA / (N * N);
-		avgB = totalB / (N * N);
-		avgC = totalC / (N * N);
+				d = ((maxA * maxB * maxC) - (minA * minB * minC)) / (avgA * avgB * avgC);
+			}
+		}
 
-		d = ((maxA * maxB * maxC) - (minA * minB * minC)) / (avgA * avgB * avgC);
-	}
+		/* 3º Comunicación --> Se comunica d a todos los procesos */
+		commTimes[4] = MPI_Wtime();
+		#pragma omp single
+		{
+			MPI_Bcast(&d, 1, MPI_DOUBLE, COORDINATOR, MPI_COMM_WORLD);
+		}
+		commTimes[5] = MPI_Wtime();
 
-	/* 3º Comunicación --> Se comunica d a todos los procesos */
-	commTimes[4] = MPI_Wtime();
-	MPI_Bcast(&d, 1, MPI_DOUBLE, COORDINATOR, MPI_COMM_WORLD);
-	commTimes[5] = MPI_Wtime();
+		/* Se calcula D=d.D */
+		#pragma omp for private(i,j)
+		for (i = 0; i < stripSize; i++) {
+			for (j = 0; j < N; j++) {
+				D[i * N + j] *= d;
+			}
+		}
 
-	/* Se calcula D=d.D */
-	#pragma omp parallel for private(i,j)
-	for (i = 0; i < stripSize; i++) {
-		for (j = 0; j < N; j++) {
-			D[i * N + j] *= d;
+		/* 4º Comunicación --> Recolección de D=d.D al coordinador */
+		#pragma omp single
+		{
+			commTimes[6] = MPI_Wtime();
+			MPI_Gather(D, N * stripSize, MPI_DOUBLE, D, N * stripSize, MPI_DOUBLE, COORDINATOR, MPI_COMM_WORLD);
+			commTimes[7] = MPI_Wtime();
 		}
 	}
 
-	/* 4º Comunicación --> Recolección de D=d.D al coordinador */
-	commTimes[6] = MPI_Wtime();
-	MPI_Gather(D, N * stripSize, MPI_DOUBLE, D, N * stripSize, MPI_DOUBLE, COORDINATOR, MPI_COMM_WORLD);
-	commTimes[7] = MPI_Wtime();
 
 	/* Se obtienen los tiempos de comunicación */
 	MPI_Reduce(commTimes, minCommTimes, 8, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);

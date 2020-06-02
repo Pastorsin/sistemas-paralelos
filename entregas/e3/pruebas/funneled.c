@@ -1,34 +1,25 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <omp.h>
 #include <mpi.h>
 
 #define COORDINATOR 0
 
 // Dimensión de las matrices
-int N = 4;
-
-int imprimir(double *M) {
-	for (int i = 0; i < N; i++)
-	{
-		for (int j = 0; j < N; j++)
-		{
-			printf("%ix%i --> %f\n", i, j, M[i * N + j]);
-		}
-	}
-}
+int N;
 
 int resultado_valido(double *D) {
-	for (int j = 0; j < N; j++)
-	{
-		if (D[0 * N + j] != 0)
-			return 0;
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j < N; j++) {
+			if (D[i * N + j] != 0)
+				return 0;
+		}
 	}
 	return 1;
 }
 
-
 int main(int argc, char* argv[]) {
-	int i, j, k, numProcs, rank, stripSize;
+	int i, j, k, numProcs, rank, stripSize, T, provided;
 	double *A, *B, *C, *AB, *D, d;
 
 	double maxA_local, maxB_local, maxC_local, minA_local, minB_local, minC_local;
@@ -41,10 +32,24 @@ int main(int argc, char* argv[]) {
 	MPI_Status status;
 	double commTimes[8], maxCommTimes[8], minCommTimes[8], commTime = 0, totalTime;
 
+
+	/* Lee parámetros de la línea de comando */
+	if (argc < 3) {
+		printf("\n Faltan argumentos:: N dimension de la matriz, T cantidad de threads \n");
+		exit(1);
+	}
+
+	N = atoi(argv[1]);
+	T = atoi(argv[2]);
+
+
 	/* Inicializar MPI */
-	MPI_Init(&argc, &argv);
+	MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
 	MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+	/* Inicializar OpenMP */
+	omp_set_num_threads(T);
 
 	if (N % numProcs != 0) {
 		printf("El tamaño de la matriz debe ser multiplo del numero de procesos.\n");
@@ -66,24 +71,25 @@ int main(int argc, char* argv[]) {
 		D = (double*)malloc(sizeof(double) * N * stripSize);
 	}
 
-	B = (double*) malloc(sizeof(double) * N * N);
-	C = (double*) malloc(sizeof(double) * N * N);
+	B = (double*)malloc(sizeof(double) * N * N);
+	C = (double*)malloc(sizeof(double) * N * N);
 
 	// Matrices temporales
 	AB = (double*)malloc(sizeof(double) * N * stripSize);
 
-	//Inicializa las matrices A,B y C en 1
-	// A por filas
-	// B por columnas
-	// C por columnas
+	/* Inicializar valores de las matrices en 1 */
+	// Se organiza a A por fila
+	// Se organiza a B,C por columna
 	if (rank == COORDINATOR) {
-		for (i = 0; i < N; i++) {
-			for (j = 0; j < N; j++) {
-				A[i * N + j] = i;
-				B[i * N + j] = i + N;
-				C[i * N + j] = i + 2 * N;
-			}
-		}
+		for (i = 0; i < N ; i++)
+			for (j = 0; j < N ; j++)
+				A[i * N + j] = 1;
+		for (i = 0; i < N ; i++)
+			for (j = 0; j < N ; j++)
+				B[j * N + i] = 1;
+		for (i = 0; i < N ; i++)
+			for (j = 0; j < N ; j++)
+				C[j * N + i] = 1;
 	}
 
 	totalA_local = totalB_local = totalC_local = 0;
@@ -108,60 +114,63 @@ int main(int argc, char* argv[]) {
 
 	// Calcular strip AB=A.B
 	// A por filas, B por columnas, AB por filas
-	for (i = 0; i < stripSize; i++) {
-		for (j = 0; j < N; j++) {
-			double suma_parcial = 0;
-			int despB = (i + (stripSize * rank)) * N + j;
+	#pragma omp parallel
+	{
+		#pragma omp for private(i,j,k) reduction(+:totalA_local,totalB_local) reduction(max:maxA_local,maxB_local) reduction(min:minA_local,minB_local) nowait
+		for (i = 0; i < stripSize; i++) {
+			for (j = 0; j < N; j++) {
+				double suma_parcial = 0;
 
-			// Mínimo, Máximo y Suma de B
-			if (B[despB] < minB_local)
-				minB_local = B[despB];
+				// Mínimo, Máximo y Suma de B
+				if (B[i * N + j] < minB_local)
+					minB_local = B[i * N + j];
 
-			if (B[despB] > maxB_local)
-				maxB_local = B[despB];
+				if (B[i * N + j] > maxB_local)
+					maxB_local = B[i * N + j];
 
-			totalB_local += B[despB];
+				totalB_local += B[i * N + j];
 
-			// Mínimo, Máximo y Suma de A
-			if (A[i * N + j] < minA_local)
-				minA_local = A[i * N + j];
+				// Mínimo, Máximo y Suma de A
+				if (A[i * N + j] < minA_local)
+					minA_local = A[i * N + j];
 
-			if (A[i * N + j] > maxA_local)
-				maxA_local = A[i * N + j];
+				if (A[i * N + j] > maxA_local)
+					maxA_local = A[i * N + j];
 
-			totalA_local += A[i * N + j];
+				totalA_local += A[i * N + j];
 
-			// Multiplicación
-			for (k = 0; k < N; k++) {
-				suma_parcial += A[i * N + k] * B[j * N + k];
+				// Multiplicación
+				for (k = 0; k < N; k++) {
+					suma_parcial += A[i * N + k] * B[j * N + k];
+				}
+
+				AB[i * N + j] = suma_parcial;
 			}
-
-			AB[i * N + j] = suma_parcial;
 		}
-	}
 
-	// Calcular strip D=AB.C
-	// AB por filas, C por columnas, D por filas
-	for (i = 0; i < stripSize; i++) {
-		for (j = 0; j < N; j++) {
-			double suma_parcial = 0;
-			int despC = (i + (stripSize * rank)) * N + j;			
+		// Calcular strip D=AB.C
+		// AB por filas, C por columnas, D por filas
+		#pragma omp for private(i,j,k) reduction(+:totalC_local) reduction(max:maxC_local) reduction(min:minC_local)
+		for (i = 0; i < stripSize; i++) {
+			for (j = 0; j < N; j++) {
+				double suma_parcial = 0;
 
-			// Mínimo, Máximo y Suma de C
-			if (C[despC] < minC_local)
-				minC_local = C[despC];
+				// Mínimo, Máximo y Suma de C
+				if (C[i * N + j] < minC_local)
+					minC_local = C[i * N + j];
 
-			if (C[despC] > maxC_local)
-				maxC_local = C[despC];
+				if (C[i * N + j] > maxC_local)
+					maxC_local = C[i * N + j];
 
-			totalC_local += C[despC];
+				totalC_local += C[i * N + j];
 
-			// Multiplicación
-			for (k = 0; k < N; k++) {
-				suma_parcial += AB[i * N + k] * C[j * N + k];
+				// Multiplicación
+				for (k = 0; k < N; k++) {
+					suma_parcial += AB[i * N + k] * C[j * N + k];
+				}
+
+				D[i * N + j] = suma_parcial;
 			}
-
-			D[i * N + j] = suma_parcial;
 		}
 	}
 
@@ -198,6 +207,7 @@ int main(int argc, char* argv[]) {
 	commTimes[5] = MPI_Wtime();
 
 	/* Se calcula D=d.D */
+	#pragma omp parallel for private(i,j)
 	for (i = 0; i < stripSize; i++) {
 		for (j = 0; j < N; j++) {
 			D[i * N + j] *= d;
@@ -216,8 +226,6 @@ int main(int argc, char* argv[]) {
 	MPI_Finalize();
 
 	if (rank == COORDINATOR) {
-
-		imprimir(D);
 
 		// Verificar resultado
 		if (resultado_valido(D)) {
