@@ -66,9 +66,8 @@ int main(int argc, char* argv[]) {
 	// Porción de cada worker
 	stripSize = N / numProcs;
 
-	// Offset que tendrá que sumarle cada proceso a las matrices..
-	// ..comunicadas por Broadcast
-	offset = stripSize * rank;
+	int principio = rank * stripSize;
+	int final = (rank + 1) * stripSize;
 
 	/* Reserva de memoria */
 
@@ -126,6 +125,8 @@ int main(int argc, char* argv[]) {
 		maxC = minC = C[0];
 	}
 
+	// Calcular strip AB=A.B
+	// A por filas, B por columnas, AB por filas
 	#pragma omp parallel
 	{
 
@@ -154,39 +155,52 @@ int main(int argc, char* argv[]) {
 			}
 		}
 
+		// Mínimo, Máximo y Suma de C
+		#pragma omp for private(i, j) reduction(min:minC) reduction(max:maxC) reduction(+:totalC) nowait
+		for (i = principio; i < final; i++) {
+			for (j = 0; j < N; j++) {
+				if (C[i * N + j] < minC)
+					minC = C[i * N + j];
+
+				if (C[i * N + j] > maxC)
+					maxC = C[i * N + j];
+
+				totalC += C[i * N + j];
+			}
+		}
+
+		// Mínimo, Máximo y Suma de B
+		#pragma omp for private(i, j) reduction(min:minB) reduction(max:maxB) reduction(+:totalB) nowait
+		for (i = principio; i < final; i++) {
+			for (j = 0; j < N; j++) {
+				if (B[i * N + j] < minB)
+					minB = B[i * N + j];
+
+				if (B[i * N + j] > maxB)
+					maxB = B[i * N + j];
+
+				totalB += B[i * N + j];
+			}
+		}
+
+		// Mínimo, Máximo y Suma de A
+		#pragma omp for private(i) reduction(min:minA) reduction(max:maxA) reduction(+:totalA) nowait
+		for (i = 0; i < stripSize * N; i++) {
+			if (A[i] < minA)
+				minA = A[i];
+
+			if (A[i] > maxA)
+				maxA = A[i];
+
+			totalA += A[i];
+		}
+
 		// Calcular strip AB=A.B
 		// A por filas, B por columnas, AB por filas
-		#pragma omp for private(i,j,k,index) \
-		reduction(+:totalA, totalB) \
-		reduction(max:maxA, maxB) \
-		reduction(min:minA, minB) \
-		nowait
+		#pragma omp for private(i,j,k) nowait
 		for (i = 0; i < stripSize; i++) {
 			for (j = 0; j < N; j++) {
 				double suma_parcial = 0;
-
-				/* Este índice se utiliza para acceder
-				a las matrices que fueron comunicadas mediante
-				Broadcast */
-				index = (i + offset) * N + j;
-
-				// Mínimo, Máximo y Suma de B
-				if (B[index] < minB)
-					minB = B[index];
-
-				if (B[index] > maxB)
-					maxB = B[index];
-
-				totalB += B[index];
-
-				// Mínimo, Máximo y Suma de A
-				if (A[i * N + j] < minA)
-					minA = A[i * N + j];
-
-				if (A[i * N + j] > maxA)
-					maxA = A[i * N + j];
-
-				totalA += A[i * N + j];
 
 				// Multiplicación
 				for (k = 0; k < N; k++) {
@@ -199,27 +213,10 @@ int main(int argc, char* argv[]) {
 
 		// Calcular strip D=AB.C
 		// AB por filas, C por columnas, D por filas
-		#pragma omp for private(i,j,k,index) \
-		reduction(+: totalC) \
-		reduction(max: maxC) \
-		reduction(min: minC)
+		#pragma omp for private(i,j,k)
 		for (i = 0; i < stripSize; i++) {
 			for (j = 0; j < N; j++) {
 				double suma_parcial = 0;
-
-				/* Este índice se utiliza para acceder
-				a las matrices que fueron comunicadas mediante
-				broadcast */
-				index = (i + offset) * N + j;
-
-				// Mínimo, Máximo y Suma de C
-				if (C[index] < minC)
-					minC = C[index];
-
-				if (C[index] > maxC)
-					maxC = C[index];
-
-				totalC += C[index];
 
 				// Multiplicación
 				for (k = 0; k < N; k++) {
@@ -295,8 +292,8 @@ int main(int argc, char* argv[]) {
 		totalTime = maxCommTimes[(N_COMM * 2) - 1] - minCommTimes[0];
 
 		for (i = 0; i < N_COMM * 2; i += 2) {
-			double comienzo = minCommTimes[i];
 			double final = maxCommTimes[i + 1];
+			double comienzo = minCommTimes[i];
 
 			printf("Comunicación %i: %f\n", i / 2, final - comienzo);
 

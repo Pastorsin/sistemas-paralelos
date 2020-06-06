@@ -2,7 +2,7 @@
 #include<stdlib.h>
 
 //Dimension por defecto de las matrices
-int N = 2;
+int N = 4;
 
 //Para calcular tiempo
 double dwalltime() {
@@ -15,7 +15,18 @@ double dwalltime() {
 }
 
 int resultado_valido(double *D) {
-  return (D[0] == 24 && D[1] == 88 && D[2] == 104 && D[3] == 360);
+  for (int j = 0; j < N; j++)
+  {
+    if (D[0 * N + j] != 0)
+      return 0;
+    if (D[1 * N + j] != 1672)
+      return 0;
+    if (D[2 * N + j] != 3344)
+      return 0;
+    if (D[3 * N + j] != 5016)
+      return 0;
+  }
+  return 1;
 }
 
 int imprimir(double *M) {
@@ -33,7 +44,7 @@ int main(int argc, char*argv[]) {
   double maxA, minA, maxB, minB, maxC, minC;
   double totalA, totalB, totalC, avgA, avgB, avgC;
   int i, j, k;
-  int d;
+  double d;
   double timetick;
 
   //Aloca memoria para las matrices
@@ -50,10 +61,9 @@ int main(int argc, char*argv[]) {
   int cont = 0;
   for (i = 0; i < N; i++) {
     for (j = 0; j < N; j++) {
-      A[i * N + j] = cont;
-      B[i * N + j] = cont;
-      C[i * N + j] = cont;
-      cont++;
+      A[i * N + j] = i;
+      B[i * N + j] = i+N;
+      C[i * N + j] = i+2*N;
     }
   }
 
@@ -136,12 +146,16 @@ int main(int argc, char*argv[]) {
     }
   }
 
+  printf("AB:\n");
+  imprimir(D);
+
   // Calcular d
   avgA = totalA / (N * N);
   avgB = totalB / (N * N);
   avgC = totalC / (N * N);
 
   d = ((maxA * maxB * maxC) - (minA * minB * minC)) / (avgA * avgB * avgC);
+  printf("d --> %f\n", d);
 
   // Calcular D=d.D
   for (i = 0; i < N; i++) {

@@ -7,9 +7,6 @@
 // Dimensión de las matrices
 int N;
 
-// Número de comunicaciones
-int N_COMM = 3;
-
 int resultado_valido(double *D) {
 	for (int i = 0; i < N; i++) {
 		for (int j = 0; j < N; j++) {
@@ -21,15 +18,19 @@ int resultado_valido(double *D) {
 }
 
 int main(int argc, char* argv[]) {
-	int i, j, k, numProcs, rank, stripSize, offset, index;
+	int i, j, k, numProcs, rank, stripSize;
 	double *A, *B, *C, *AB, *D, d;
 
-	double maximos[3], minimos[3], totales[3];
-	double maximos_locales[3], minimos_locales[3], totales_locales[3];
+	double maxA_local, maxB_local, maxC_local, minA_local, minB_local, minC_local;
+	double totalA_local, totalB_local, totalC_local;
+
+	double maxA, maxB, maxC, minA, minB, minC;
+	double totalA, totalB, totalC;
 	double avgA, avgB, avgC;
 
 	MPI_Status status;
-	double commTimes[N_COMM * 2], maxCommTimes[N_COMM * 2], minCommTimes[N_COMM * 2], commTime = 0, totalTime;
+	double commTimes[8], maxCommTimes[8], minCommTimes[8], commTime = 0, totalTime;
+
 
 	/* Lee parámetros de la línea de comando */
 	if ((argc != 2) || ((N = atoi(argv[1])) <= 0) ) {
@@ -49,10 +50,6 @@ int main(int argc, char* argv[]) {
 
 	// Porción de cada worker
 	stripSize = N / numProcs;
-
-	// Offset que tendrá que sumarle cada proceso a las matrices..
-	// ..comunicadas por Broadcast
-	offset = stripSize * rank;
 
 	/* Reserva de memoria */
 
@@ -87,9 +84,7 @@ int main(int argc, char* argv[]) {
 				C[j * N + i] = 1;
 	}
 
-	// Inicializar totales locales
-	for (i = 0; i < 3 ; i++)
-		totales_locales[i] = 0;
+	totalA_local = totalB_local = totalC_local = 0;
 
 	// Los procesos esperan a que el coordinador termine de inicializar
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -105,10 +100,9 @@ int main(int argc, char* argv[]) {
 
 	/* Procesamiento local */
 
-	// Inicializar máximos y mínimos locales
-	maximos_locales[0] = minimos_locales[0] = A[0];
-	maximos_locales[1] = minimos_locales[1] = B[0];
-	maximos_locales[2] = minimos_locales[2] = C[0];
+	maxA_local = minA_local = A[0];
+	maxB_local = minB_local = B[0];
+	maxC_local = minC_local = C[0];
 
 	// Calcular strip AB=A.B
 	// A por filas, B por columnas, AB por filas
@@ -116,28 +110,23 @@ int main(int argc, char* argv[]) {
 		for (j = 0; j < N; j++) {
 			double suma_parcial = 0;
 
-			/* Este índice se utiliza para acceder
-			a las matrices que fueron comunicadas mediante
-			Broadcast */
-			index = (i + offset) * N + j;
-
 			// Mínimo, Máximo y Suma de B
-			if (B[index] < minimos_locales[1])
-				minimos_locales[1] = B[index];
+			if (B[i * N + j] < minB_local)
+				minB_local = B[i * N + j];
 
-			if (B[index] > maximos_locales[1])
-				maximos_locales[1] = B[index];
+			if (B[i * N + j] > maxB_local)
+				maxB_local = B[i * N + j];
 
-			totales_locales[1] += B[index];
+			totalB_local += B[i * N + j];
 
 			// Mínimo, Máximo y Suma de A
-			if (A[i * N + j] < minimos_locales[0])
-				minimos_locales[0] = A[i * N + j];
+			if (A[i * N + j] < minA_local)
+				minA_local = A[i * N + j];
 
-			if (A[i * N + j] > maximos_locales[0])
-				maximos_locales[0] = A[i * N + j];
+			if (A[i * N + j] > maxA_local)
+				maxA_local = A[i * N + j];
 
-			totales_locales[0] += A[i * N + j];
+			totalA_local += A[i * N + j];
 
 			// Multiplicación
 			for (k = 0; k < N; k++) {
@@ -154,19 +143,14 @@ int main(int argc, char* argv[]) {
 		for (j = 0; j < N; j++) {
 			double suma_parcial = 0;
 
-			/* Este índice se utiliza para acceder
-			a las matrices que fueron comunicadas mediante
-			broadcast */
-			index = (i + offset) * N + j;
-
 			// Mínimo, Máximo y Suma de C
-			if (C[index] < minimos_locales[2])
-				minimos_locales[2] = C[index];
+			if (C[i * N + j] < minC_local)
+				minC_local = C[i * N + j];
 
-			if (C[index] > maximos_locales[2])
-				maximos_locales[2] = C[index];
+			if (C[i * N + j] > maxC_local)
+				maxC_local = C[i * N + j];
 
-			totales_locales[2] += C[index];
+			totalC_local += C[i * N + j];
 
 			// Multiplicación
 			for (k = 0; k < N; k++) {
@@ -181,17 +165,33 @@ int main(int argc, char* argv[]) {
 	/* 2º Comunicación --> Reducciones de mínimo, máximo y suma de ABC */
 	commTimes[2] = MPI_Wtime();
 
-	MPI_Allreduce(&totales_locales, &totales, 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-	MPI_Allreduce(&maximos_locales, &maximos, 3, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-	MPI_Allreduce(&minimos_locales, &minimos, 3, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+	MPI_Reduce(&totalA_local, &totalA, 1, MPI_DOUBLE, MPI_SUM, COORDINATOR, MPI_COMM_WORLD);
+	MPI_Reduce(&totalB_local, &totalB, 1, MPI_DOUBLE, MPI_SUM, COORDINATOR, MPI_COMM_WORLD);
+	MPI_Reduce(&totalC_local, &totalC, 1, MPI_DOUBLE, MPI_SUM, COORDINATOR, MPI_COMM_WORLD);
+
+	MPI_Reduce(&maxA_local, &maxA, 1, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
+	MPI_Reduce(&maxB_local, &maxB, 1, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
+	MPI_Reduce(&maxC_local, &maxC, 1, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
+
+	MPI_Reduce(&minA_local, &minA, 1, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);
+	MPI_Reduce(&minB_local, &minB, 1, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);
+	MPI_Reduce(&minC_local, &minC, 1, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);
 
 	commTimes[3] = MPI_Wtime();
 
-	avgA = totales[0] / (N * N);
-	avgB = totales[1] / (N * N);
-	avgC = totales[2] / (N * N);
+	/* El coordinador se encarga de calcular d y los demás esperan a que termine */
+	if (rank == COORDINATOR) {
+		avgA = totalA / (N * N);
+		avgB = totalB / (N * N);
+		avgC = totalC / (N * N);
 
-	d = ((maximos[0] * maximos[1] * maximos[2]) - (minimos[0] * minimos[1] * minimos[2])) / (avgA * avgB * avgC);
+		d = ((maxA * maxB * maxC) - (minA * minB * minC)) / (avgA * avgB * avgC);
+	}
+
+	/* 3º Comunicación --> Se comunica d a todos los procesos */
+	commTimes[4] = MPI_Wtime();
+	MPI_Bcast(&d, 1, MPI_DOUBLE, COORDINATOR, MPI_COMM_WORLD);
+	commTimes[5] = MPI_Wtime();
 
 	/* Se calcula D=d.D */
 	for (i = 0; i < stripSize; i++) {
@@ -200,14 +200,14 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-	/* 3º Comunicación --> Recolección de D=d.D al coordinador */
-	commTimes[4] = MPI_Wtime();
+	/* 4º Comunicación --> Recolección de D=d.D al coordinador */
+	commTimes[6] = MPI_Wtime();
 	MPI_Gather(D, N * stripSize, MPI_DOUBLE, D, N * stripSize, MPI_DOUBLE, COORDINATOR, MPI_COMM_WORLD);
-	commTimes[5] = MPI_Wtime();
+	commTimes[7] = MPI_Wtime();
 
 	/* Se obtienen los tiempos de comunicación */
-	MPI_Reduce(commTimes, minCommTimes, N_COMM * 2, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);
-	MPI_Reduce(commTimes, maxCommTimes, N_COMM * 2, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
+	MPI_Reduce(commTimes, minCommTimes, 8, MPI_DOUBLE, MPI_MIN, COORDINATOR, MPI_COMM_WORLD);
+	MPI_Reduce(commTimes, maxCommTimes, 8, MPI_DOUBLE, MPI_MAX, COORDINATOR, MPI_COMM_WORLD);
 
 	MPI_Finalize();
 
@@ -222,19 +222,17 @@ int main(int argc, char* argv[]) {
 
 		// Se calculan los tiempos de comunicación y total
 
-		totalTime = maxCommTimes[(N_COMM * 2) - 1] - minCommTimes[0];
+		totalTime = maxCommTimes[7] - minCommTimes[0];
 
-		for (i = 0; i < N_COMM * 2; i += 2) {
+		for (i = 0; i < 8; i += 2) {
 			double final = maxCommTimes[i + 1];
 			double comienzo = minCommTimes[i];
 
-			printf("Comunicación %i: %f\n", i / 2, final - comienzo);
-
 			commTime += final - comienzo;
+
 		}
 
 		printf("Multiplicacion de matrices (N=%d)\tTiempo total=%lf\tTiempo comunicacion=%lf\n", N, totalTime, commTime);
-
 	}
 
 	/* Liberación de memoria */
